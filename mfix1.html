@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>טופס תיקון - Mfix</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" type="text/javascript"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" type="text/javascript"></script>
+  <style>
+    :root {
+      --tab-form: #3498db;
+      --tab-saved: #27ae60;
+      --tab-search: #f39c12;
+      --tab-complete: #9b59b6;
+      --tab-inventory: #e74c3c;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e4edf9 100%);
+      padding: 20px;
+      margin: 0;
+      position: relative;
+    }
+    .refresh-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      z-index: 100;
+      transition: all 0.2s;
+    }
+    .refresh-btn:hover {
+      background: #e2e8f0;
+      transform: rotate(20deg);
+    }
+    .refresh-btn i {
+      color: #4a5568;
+      font-size: 18px;
+    }
+
+    .container {
+      max-width: 750px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+      overflow: hidden;
+      position: relative;
+      padding-top: 20px;
+    }
+    .main-title {
+      text-align: center;
+      color: #2c3e50;
+      margin: 0 0 8px;
+      font-size: 28px;
+      font-weight: bold;
+    }
+    .sub-title {
+      text-align: center;
+      color: #7f8c8d;
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+
+    /* טאבים צבעוניים */
+    .tabs {
+      display: flex;
+      background: #f1f5f9;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 14px;
+      background: none;
+      border: none;
+      font-size: 15px;
+      font-weight: bold;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+    }
+    .tab-btn::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: transparent;
+      transition: background 0.3s;
+    }
+    .tab-btn[data-tab="form"]::after { background: var(--tab-form); }
+    .tab-btn[data-tab="saved"]::after { background: var(--tab-saved); }
+    .tab-btn[data-tab="search"]::after { background: var(--tab-search); }
+    .tab-btn[data-tab="complete"]::after { background: var(--tab-complete); }
+    .tab-btn[data-tab="inventory"]::after { background: var(--tab-inventory); }
+
+    .tab-btn.active {
+      color: #2c3e50;
+    }
+    .tab-btn.active[data-tab="form"] { color: var(--tab-form); }
+    .tab-btn.active[data-tab="saved"] { color: var(--tab-saved); }
+    .tab-btn.active[data-tab="search"] { color: var(--tab-search); }
+    .tab-btn.active[data-tab="complete"] { color: var(--tab-complete); }
+    .tab-btn.active[data-tab="inventory"] { color: var(--tab-inventory); }
+
+    .tab-content {
+      display: none;
+      padding: 25px;
+    }
+    .tab-content.active {
+      display: block;
+    }
+
+    /* סגנונות משותפים */
+    .form-group, .search-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: bold;
+      color: #2c3e50;
+      margin-bottom: 6px;
+      font-size: 15px;
+    }
+    label i {
+      width: 24px;
+      text-align: center;
+      color: #3498db;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e1e8f0;
+      border-radius: 10px;
+      box-sizing: border-box;
+      font-size: 15px;
+      font-family: inherit;
+      transition: border-color 0.3s;
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #3498db;
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+    }
+    .amounts {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .amount-box {
+      flex: 1;
+      padding: 14px;
+      background: #f0f9ff;
+      border-radius: 12px;
+      text-align: center;
+      border: 1px solid #d1e7ff;
+    }
+    .amount-box strong {
+      display: block;
+      font-size: 13px;
+      color: #2980b9;
+    }
+    .amount-box div {
+      font-size: 19px;
+      font-weight: bold;
+      color: #2c3e50;
+      margin-top: 5px;
+    }
+    button {
+      padding: 12px 16px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    }
+    .btn-primary { background: var(--tab-form); color: white; }
+    .btn-success { background: var(--tab-saved); color: white; }
+    .btn-warning { background: var(--tab-search); color: white; }
+    .btn-complete { background: var(--tab-complete); color: white; }
+    .btn-inventory { background: var(--tab-inventory); color: white; }
+    .btn-whatsapp { background: #25D366; color: white; }
+    .btn-print { background: #9b59b6; color: white; }
+    .btn-email { background: #3b5998; color: white; }
+    .btn-sms { background: #00bfa5; color: white; }
+    .btn-label { background: #8e44ad; color: white; }
+
+    .action-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    /* קבלה ותווית */
+    .receipt, .label-preview {
+      display: none;
+      padding: 15px;
+      margin-top: 25px;
+      border: 1px dashed #aaa;
+      background: #ffffff;
+      font-size: 14px;
+      line-height: 1.4;
+      border-radius: 12px;
+      max-width: 280px;
+      margin-left: auto;
+      margin-right: auto;
+      font-family: Arial, sans-serif;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .receipt h3, .label-preview h3 {
+      text-align: center;
+      margin-top: 0;
+      margin-bottom: 12px;
+      font-size: 18px;
+      color: #2c3e50;
+    }
+    .receipt .doc-number, .label-preview .doc-number {
+      text-align: center;
+      font-weight: bold;
+      color: #2980b9;
+      margin-bottom: 8px;
+    }
+    .receipt .doc-date, .label-preview .doc-date {
+      text-align: center;
+      font-size: 12px;
+      color: #7f8c8d;
+      margin-bottom: 10px;
+    }
+    .receipt hr, .label-preview hr {
+      border: none;
+      border-top: 1px dashed #999;
+      margin: 10px 0;
+    }
+    .receipt .footer-text, .label-preview .footer-text {
+      text-align: center;
+      margin-top: 15px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .label-preview {
+      max-width: 200px;
+      font-size: 12px;
+      padding: 10px;
+    }
+
+    /* רשימות */
+    .saved-list, .search-results, .inventory-list {
+      margin-top: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      padding: 15px;
+      background: #fafafa;
+    }
+    .saved-item, .result-item, .inventory-item {
+      padding: 12px;
+      background: white;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .saved-item:last-child, .result-item:last-child, .inventory-item:last-child {
+      margin-bottom: 0;
+    }
+    .item-header {
+      display: flex;
+      justify-content: space-between;
+      font-weight: bold;
+      color: #2c3e50;
+    }
+    .item-meta {
+      font-size: 13px;
+      color: #7f8c8d;
+      margin-top: 5px;
+    }
+    .item-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .item-actions button {
+      padding: 6px 10px;
+      font-size: 13px;
+      width: auto;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    .status-completed {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    /* טאב מלאי */
+    .inventory-form {
+      background: #fef6f6;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    .inventory-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    .inventory-table th, .inventory-table td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+    }
+    .inventory-table th {
+      background: #fdf2f2;
+      color: var(--tab-inventory);
+      font-weight: bold;
+    }
+    .inventory-table tr:hover {
+      background: #fff9f9;
+    }
+
+    @media print {
+      body * { visibility: hidden; }
+      .receipt, .receipt *, .label-preview, .label-preview * { visibility: visible; }
+      .receipt, .label-preview {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        padding: 8px;
+        box-sizing: border-box;
+        font-size: 12px;
+      }
+      .label-preview {
+        width: 200px;
+        font-size: 11px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="refresh-btn" title="רענן דף" onclick="refreshPage()">
+    <i class="fas fa-redo"></i>
+  </div>
+
+  <div class="container">
+    <h1 class="main-title">טופס תיקון</h1>
+    <p class="sub-title">Mfix - קניון עזריאלי רמלה</p>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="form">טופס תיקון</button>
+      <button class="tab-btn" data-tab="saved">שמירה מקומית</button>
+      <button class="tab-btn" data-tab="search">חיפוש מסמכים</button>
+      <button class="tab-btn" data-tab="complete">תיקון הושלם</button>
+      <button class="tab-btn" data-tab="inventory">מלאי</button>
+    </div>
+
+    <!-- טאב 1: טופס תיקון -->
+    <div id="form-tab" class="tab-content active">
+      <form id="repairForm">
+        <div class="form-group">
+          <label for="customerName"><i class="fas fa-user"></i> שם לקוח:</label>
+          <input type="text" id="customerName" required />
+        </div>
+
+        <div class="form-group">
+          <label for="phone"><i class="fas fa-phone"></i> מספר טלפון:</label>
+          <input type="tel" id="phone" required placeholder="למשל: 050-1234567" />
+        </div>
+
+        <div class="form-group">
+          <label for="deviceModel"><i class="fas fa-microchip"></i> דגם המכשיר:</label>
+          <input type="text" id="deviceModel" required />
+        </div>
+
+        <!-- פריטים מהמלאי -->
+        <div class="form-group">
+          <label for="inventoryItems"><i class="fas fa-boxes"></i> פריטים מהמלאי (אופציונלי):</label>
+          <select id="inventoryItems" multiple size="4" style="height: 120px;">
+            <option value="">לא נבחרו פריטים</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="issueDescription"><i class="fas fa-exclamation-triangle"></i> תיאור תקלה:</label>
+          <textarea id="issueDescription" rows="4" required placeholder="תאר את התקלה במדויק..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="devicePassword"><i class="fas fa-lock"></i> קוד/סיסמת מכשיר (אם קיים):</label>
+          <input type="text" id="devicePassword" placeholder="למשל: 1234, או Face ID" />
+        </div>
+
+        <div class="form-group">
+          <label for="totalAmount"><i class="fas fa-coins"></i> סכום לתשלום (כולל מע"מ 18%):</label>
+          <input type="number" id="totalAmount" step="0.01" min="0" required oninput="calculateNet()" placeholder="למשל: 100" />
+        </div>
+
+        <div class="amounts">
+          <div class="amount-box">
+            <strong>סכום ללא מע"מ</strong>
+            <div id="netAmount">0.00 ₪</div>
+          </div>
+          <div class="amount-box">
+            <strong>מע"מ (18%)</strong>
+            <div id="vatAmount">0.00 ₪</div>
+          </div>
+        </div>
+
+        <button type="button" class="btn-success" onclick="generateAndSaveForm()">
+          <i class="fas fa-file-alt"></i> הצג טופס
+        </button>
+
+        <div class="action-buttons">
+          <button type="button" class="btn-print" onclick="printReceipt('80')">
+            <i class="fas fa-print"></i> הדפס טופס
+          </button>
+          <button type="button" class="btn-label" onclick="printLabel()">
+            <i class="fas fa-tag"></i> הדפס תווית
+          </button>
+          <button type="button" class="btn-danger" onclick="exportToPDF()">
+            <i class="fas fa-file-pdf"></i> ייצא ל-PDF
+          </button>
+          <button type="button" class="btn-primary" onclick="downloadReceiptImage()">
+            <i class="fas fa-image"></i> הורד כתמונה
+          </button>
+          <button type="button" class="btn-whatsapp" onclick="sendToWhatsApp()">
+            <i class="fab fa-whatsapp"></i> שלח לוואטסאפ
+          </button>
+          <button type="button" class="btn-email" onclick="sendEmail()">
+            <i class="fas fa-envelope"></i> שלח בדוא"ל
+          </button>
+        </div>
+
+        <div id="receipt" class="receipt"></div>
+        <div id="labelPreview" class="label-preview"></div>
+      </form>
+    </div>
+
+    <!-- טאב 2: שמירה מקומית -->
+    <div id="saved-tab" class="tab-content">
+      <h3><i class="fas fa-database"></i> כל המסמכים השמורים</h3>
+      <div id="savedList" class="saved-list"></div>
+      <div style="margin-top:15px; display:flex; gap:10px; flex-wrap: wrap;">
+        <button type="button" class="btn-success" onclick="loadAllReceipts()">
+          <i class="fas fa-sync"></i> רענן רשימה
+        </button>
+        <button type="button" class="btn-warning" onclick="exportAllReceipts()">
+          <i class="fas fa-file-export"></i> ייצא כל המסמכים
+        </button>
+        <button type="button" class="btn-primary" onclick="document.getElementById('importFile').click()">
+          <i class="fas fa-file-import"></i> ייבא מסמכים
+        </button>
+        <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importReceipts(event)">
+      </div>
+    </div>
+
+    <!-- טאב 3: חיפוש מסמכים -->
+    <div id="search-tab" class="tab-content">
+      <h3><i class="fas fa-search"></i> חיפוש מסמכים</h3>
+      <div class="search-group">
+        <input type="text" id="searchByName" placeholder="חפש לפי שם לקוח" />
+      </div>
+      <div class="search-group">
+        <input type="text" id="searchByPhone" placeholder="חפש לפי טלפון" />
+      </div>
+      <button type="button" class="btn-warning" onclick="searchReceipts()">
+        <i class="fas fa-search"></i> חפש
+      </button>
+      <div id="searchResults" class="search-results"></div>
+    </div>
+
+    <!-- טאב 4: תיקון הושלם -->
+    <div id="complete-tab" class="tab-content">
+      <h3><i class="fas fa-check-circle"></i> תיקון הושלם</h3>
+      <p>בחר טופס כדי לשלוח הודעה ללקוח שהמכשיר מוכן לאיסוף.</p>
+      
+      <div class="form-group">
+        <label for="completeDocId"><i class="fas fa-file-alt"></i> בחר מסמך:</label>
+        <select id="completeDocId" style="padding:12px; font-size:15px;"></select>
+      </div>
+
+      <div class="action-buttons">
+        <button type="button" class="btn-whatsapp" onclick="sendCompletionWhatsApp()">
+          <i class="fab fa-whatsapp"></i> שלח לוואטסאפ
+        </button>
+        <button type="button" class="btn-email" onclick="sendCompletionEmail()">
+          <i class="fas fa-envelope"></i> שלח בדוא"ל
+        </button>
+        <button type="button" class="btn-sms" onclick="sendCompletionSMS()">
+          <i class="fas fa-sms"></i> שלח SMS
+        </button>
+      </div>
+    </div>
+
+    <!-- טאב 5: מלאי -->
+    <div id="inventory-tab" class="tab-content">
+      <h3><i class="fas fa-box"></i> ניהול מלאי</h3>
+      
+      <div class="inventory-form">
+        <h4>הוסף פריט חדש</h4>
+        <div class="form-group">
+          <label for="itemName">שם פריט:</label>
+          <input type="text" id="itemName" placeholder="למשל: מסך ל-iPhone 13" required />
+        </div>
+        <div class="form-group">
+          <label for="itemBarcode">ברקוד:</label>
+          <input type="text" id="itemBarcode" placeholder="1234567890123" />
+        </div>
+        <div class="form-group">
+          <label for="itemCost">מחיר עלות (₪):</label>
+          <input type="number" id="itemCost" step="0.01" min="0" placeholder="50.00" />
+        </div>
+        <div class="form-group">
+          <label for="itemPrice">מחיר לצרכן (₪):</label>
+          <input type="number" id="itemPrice" step="0.01" min="0" placeholder="120.00" required />
+        </div>
+        <div class="form-group">
+          <label for="itemQuantity">כמות במלאי:</label>
+          <input type="number" id="itemQuantity" min="0" placeholder="10" required />
+        </div>
+        <button type="button" class="btn-inventory" onclick="addItemToInventory()">
+          <i class="fas fa-plus"></i> הוסף פריט
+        </button>
+      </div>
+
+      <h4>רשימת מלאי</h4>
+      <div class="inventory-list">
+        <table class="inventory-table">
+          <thead>
+            <tr>
+              <th>שם פריט</th>
+              <th>ברקוד</th>
+              <th>עלות</th>
+              <th>מחיר</th>
+              <th>כמות</th>
+              <th>פעולות</th>
+            </tr>
+          </thead>
+          <tbody id="inventoryTableBody">
+            <!-- ימולא ב-JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // === פונקציית ניקוי טלפון ===
+    function cleanPhone(phone) {
+      return phone.replace(/\D/g, '');
+    }
+
+    // === ניקוי חד-פעמי של מסמכים קיימים ===
+    function cleanExistingPhonesIfNeeded() {
+      const cleanedFlag = localStorage.getItem('phones_cleaned');
+      if (cleanedFlag) return;
+
+      let receipts = JSON.parse(localStorage.getItem('mfix_receipts') || '[]');
+      let updated = false;
+      
+      receipts = receipts.map(r => {
+        if (r.phone && typeof r.phone === 'string' && /\D/.test(r.phone)) {
+          r.phone = cleanPhone(r.phone);
+          updated = true;
+        }
+        return r;
+      });
+      
+      if (updated) {
+        localStorage.setItem('mfix_receipts', JSON.stringify(receipts));
+      }
+      localStorage.setItem('phones_cleaned', 'true');
+    }
+
+    // === פונקציות ניהול מלאי ===
+    function loadInventory() {
+      return JSON.parse(localStorage.getItem('mfix_inventory') || '[]');
+    }
+
+    function saveInventory(inventory) {
+      localStorage.setItem('mfix_inventory', JSON.stringify(inventory));
+    }
+
+    function renderInventory() {
+      const inventory = loadInventory();
+      const tbody = document.getElementById('inventoryTableBody');
+      tbody.innerHTML = '';
+
+      if (inventory.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#7f8c8d;">אין פריטים במלאי.</td></tr>`;
+        return;
+      }
+
+      inventory.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${escapeHtml(item.name)}</td>
+          <td>${item.barcode || '—'}</td>
+          <td>${item.cost ? item.cost.toFixed(2) + ' ₪' : '—'}</td>
+          <td>${item.price.toFixed(2)} ₪</td>
+          <td>${item.quantity}</td>
+          <td>
+            <button class="btn-inventory" onclick="editInventoryItem('${item.id}')">ערוך</button>
+            <button class="btn-danger" onclick="deleteInventoryItem('${item.id}')">מחק</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function addItemToInventory() {
+      const name = document.getElementById('itemName').value.trim();
+      const barcode = document.getElementById('itemBarcode').value.trim();
+      const cost = parseFloat(document.getElementById('itemCost').value) || 0;
+      const price = parseFloat(document.getElementById('itemPrice').value);
+      const quantity = parseInt(document.getElementById('itemQuantity').value);
+
+      if (!name || isNaN(price) || isNaN(quantity) || quantity < 0) {
+        alert("נא מלא את כל השדות החובה.");
+        return;
+      }
+
+      const inventory = loadInventory();
+      const newItem = {
+        id: Date.now().toString(),
+        name: name,
+        barcode: barcode || null,
+        cost: cost,
+        price: price,
+        quantity: quantity
+      };
+
+      inventory.push(newItem);
+      saveInventory(inventory);
+      renderInventory();
+
+      // נקה שדות
+      document.getElementById('itemName').value = '';
+      document.getElementById('itemBarcode').value = '';
+      document.getElementById('itemCost').value = '';
+      document.getElementById('itemPrice').value = '';
+      document.getElementById('itemQuantity').value = '';
+      
+      alert("הפריט נוסף בהצלחה!");
+    }
+
+    function deleteInventoryItem(id) {
+      if (!confirm("האם אתה בטוח שברצונך למחוק את הפריט?")) return;
+
+      let inventory = loadInventory();
+      inventory = inventory.filter(item => item.id !== id);
+      saveInventory(inventory);
+      renderInventory();
+      loadInventoryDropdown(); // רענון רשימת הפריטים בטופס
+    }
+
+    function editInventoryItem(id) {
+      alert("עריכה טרם מומשה. ניתן למחוק ולהוסיף מחדש.");
+    }
+
+    // טען רשימת פריטים לטופס תיקון
+    function loadInventoryDropdown() {
+      const select = document.getElementById('inventoryItems');
+      select.innerHTML = '<option value="">בחר פריטים...</option>';
+      const inventory = loadInventory();
+      inventory.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = `${item.name} (${item.quantity} במלאי)`;
+        select.appendChild(option);
+      });
+    }
+
+    // === פונקציות קיימות ===
+    function formatIsraeliPhone(phone) {
+      let clean = phone.replace(/\D/g, '');
+      if (clean.startsWith('00')) clean = clean.substring(2);
+      if (clean.startsWith('972')) return clean;
+      if (clean.startsWith('0')) return '972' + clean.substring(1);
+      if (clean.length === 9 && clean.startsWith('5')) return '972' + clean;
+      return clean;
+    }
+
+    function refreshPage() {
+      if (confirm("האם אתה בטוח שברצונך לרענן את הדף? כל שינוי שלא נשמר יאבד.")) {
+        location.reload();
+      }
+    }
+
+    // === טאבים ===
+    document.querySelectorAll('.tab-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        button.classList.add('active');
+        const tabId = button.getAttribute('data-tab');
+        document.getElementById(tabId + '-tab').classList.add('active');
+        
+        // טען תוכן דינמי לפי הטאב
+        if (tabId === 'saved') loadAllReceipts();
+        if (tabId === 'complete') loadCompletionDropdown();
+        if (tabId === 'inventory') renderInventory();
+        if (tabId === 'form') loadInventoryDropdown();
+      });
+    });
+
+    function calculateNet() {
+      const total = parseFloat(document.getElementById('totalAmount').value) || 0;
+      if (total <= 0) {
+        document.getElementById('netAmount').textContent = '0.00 ₪';
+        document.getElementById('vatAmount').textContent = '0.00 ₪';
+        return;
+      }
+      const net = total / 1.18;
+      const vat = total - net;
+      document.getElementById('netAmount').textContent = net.toFixed(2) + ' ₪';
+      document.getElementById('vatAmount').textContent = vat.toFixed(2) + ' ₪';
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function getNextDocNumber() {
+      const receipts = JSON.parse(localStorage.getItem('mfix_receipts') || '[]');
+      if (receipts.length === 0) return 1345;
+      const last = Math.max(...receipts.map(r => r.docNumber || 0));
+      return last + 1;
+    }
+
+    function generateReceiptHTML(data) {
+      let html = `
+        <h3>טופס תיקון - Mfix</h3>
+        <div class="doc-number">מס' טופס: ${data.docNumber}</div>
+        <div class="doc-date">${data.timestamp}</div>
+        <p><strong>שם לקוח:</strong> ${escapeHtml(data.customerName)}</p>
+        <p><strong>טלפון:</strong> ${escapeHtml(data.phone)}</p>
+        <p><strong>דגם:</strong> ${escapeHtml(data.deviceModel)}</p>
+      `;
+      if (data.inventoryItems && data.inventoryItems.length > 0) {
+        html += `<p><strong>פריטים מהמלאי:</strong><br>`;
+        data.inventoryItems.forEach(id => {
+          const inv = loadInventory().find(i => i.id === id);
+          if (inv) html += `• ${inv.name}<br>`;
+        });
+        html += `</p>`;
+      }
+      html += `
+        <p><strong>תיאור תקלה:</strong> ${escapeHtml(data.issueDescription)}</p>
+        ${data.devicePassword ? `<p><strong>קוד/סיסמה:</strong> ${escapeHtml(data.devicePassword)}</p>` : ''}
+        <hr>
+        <p><strong>סכום ללא מע"מ:</strong> ${data.netAmount.toFixed(2)} ₪</p>
+        <p><strong>מע"מ (18%):</strong> ${data.vatAmount.toFixed(2)} ₪</p>
+        <p><strong>סה"כ לתשלום (כולל מע"מ):</strong> ${data.totalAmount.toFixed(2)} ₪</p>
+        <p class="footer-text">תודה מצוות הטכנאים - Mfix</p>
+      `;
+      return html;
+    }
+
+    function generateLabelHTML(data) {
+      return `
+        <h3>Mfix - תווית</h3>
+        <div class="doc-number">#${data.docNumber}</div>
+        <p><strong>${escapeHtml(data.customerName)}</strong></p>
+        <p>📱 ${escapeHtml(data.deviceModel)}</p>
+        <p>📞 ${escapeHtml(data.phone)}</p>
+        <p style="text-align:center; margin-top:8px; font-size:10px;">${new Date().toLocaleDateString('he-IL')}</p>
+        <p class="footer-text" style="font-size:10px;">Mfix</p>
+      `;
+    }
+
+    // === שמירה אוטומטית + עדכון מלאי ===
+    function generateAndSaveForm() {
+      const name = document.getElementById('customerName').value.trim();
+      const phoneInput = document.getElementById('phone').value.trim();
+      const phone = cleanPhone(phoneInput); // ← טלפון נקי
+      const model = document.getElementById('deviceModel').value.trim();
+      const password = document.getElementById('devicePassword').value.trim();
+      const totalStr = document.getElementById('totalAmount').value;
+      const issue = document.getElementById('issueDescription').value.trim();
+      const inventorySelect = document.getElementById('inventoryItems');
+      const selectedItems = Array.from(inventorySelect.selectedOptions)
+        .map(opt => opt.value)
+        .filter(id => id);
+
+      if (!name || !phone || !model || !totalStr || !issue) {
+        alert("נא מלא את כל השדות החובה.");
+        return;
+      }
+
+      // עדכון מלאי
+      if (selectedItems.length > 0) {
+        let inventory = loadInventory();
+        let hasError = false;
+        selectedItems.forEach(id => {
+          const item = inventory.find(i => i.id === id);
+          if (item && item.quantity > 0) {
+            item.quantity -= 1;
+          } else {
+            alert(`הכמות של "${item ? item.name : 'פריט'}" במלאי איננה מספיקה!`);
+            hasError = true;
+          }
+        });
+        if (hasError) return;
+        saveInventory(inventory);
+        renderInventory(); // אם אנחנו בטאב המלאי
+      }
+
+      const total = parseFloat(totalStr);
+      const net = (total / 1.18).toFixed(2);
+      const vat = (total - net).toFixed(2);
+      const now = new Date();
+      const docNumber = getNextDocNumber();
+
+      const receiptData = {
+        id: Date.now(),
+        docNumber: docNumber,
+        timestamp: now.toLocaleString('he-IL', { hour12: false }),
+        customerName: name,
+        phone: phone, // ← טלפון נקי
+        deviceModel: model,
+        devicePassword: password,
+        totalAmount: total,
+        netAmount: parseFloat(net),
+        vatAmount: parseFloat(vat),
+        issueDescription: issue,
+        inventoryItems: selectedItems,
+        completed: false
+      };
+
+      let receipts = JSON.parse(localStorage.getItem('mfix_receipts') || '[]');
+      receipts.push(receiptData);
+      localStorage.setItem('mfix_receipts', JSON.stringify(receipts));
+
+      document.getElementById('receipt').innerHTML = generateReceiptHTML(receiptData);
+      document.getElementById('receipt').style.display = 'block';
+      document.getElementById('labelPreview').innerHTML = generateLabelHTML(receiptData);
+      document.getElementById('labelPreview').style.display = 'none';
+
+      if (document.getElementById('saved-tab').classList.contains('active')) {
+        loadAllReceipts();
+      }
+      // רענון רשימת פריטים
+      loadInventoryDropdown();
+    }
+
+    // === פונקציות ניהול מסמכים ===
+    function loadAllReceipts() {
+      cleanExistingPhonesIfNeeded(); // ← ניקוי חד-פעמי
+      const receipts = JSON.parse(localStorage.getItem('mfix_receipts') || '[]');
+      renderReceiptList(receipts, 'savedList');
+    }
+
+    function renderReceiptList(receipts, containerId) {
+      const container = document.getElementById(containerId);
+      if (receipts.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#7f8c8d;">אין מסמכים שמורים.</p>';
+        return;
+      }
+
+      let html = '';
+      receipts.forEach(r => {
+        const statusBadge = r.completed ? 
+          '<span class="status-badge status-completed">🟢 הושלם</span>' : '';
+
+        html += `
+          <div class="saved-item">
+            <div class="item-header">
+              <span>${statusBadge}טופס #${r.docNumber} - ${r.customerName}</span>
+              <span>${r.totalAmount.toFixed(2)} ₪</span>
+            </div>
+            <div class="item-meta">
+              📞 ${r.phone} | ${r.deviceModel} | ${r.timestamp}
+            </div>
+            <div class="item-actions">
+              <button class="btn-success" onclick="viewSavedReceipt(${r.id})">
+                <i class="fas fa-eye"></i> צפה
+              </button>
+              <button class="btn-print" onclick="printSavedReceipt(${r.id})">
+                <i class="fas fa-print"></i> הדפס
+              </button>
+              <button class="btn-label" onclick="printLabelFromId(${r.id})">
+                <i class="fas fa-tag"></i> תווית
+              </button>
+              <button class="btn-whatsapp" onclick="whatsappSavedReceipt(${r.id})">
+                <i class="fab fa-whatsapp"></i> שלח
+              </button>
+              <button class="btn-email" onclick="emailSavedReceipt(${r.id})">
+                <i class="fas fa-envelope"></i> דוא"ל
+              </button>
+              ${!r.completed ? 
+                `<button class="btn-complete" onclick="markAsCompleted(${r.id})">
+                  <i class="fas fa-check"></i> תיקון הושלם
+                </button>` : ''}
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    // === ✅ חיפוש מתוקן ===
+    function searchReceipts() {
+      cleanExistingPhonesIfNeeded(); // ← ודא שהניקוי בוצע
+      const nameQuery = document.getElementById('searchByName').value.trim().toLowerCase();
+      const phoneQuery = cleanPhone(document.getElementById('searchByPhone').value); // ← טלפון לחיפוש נקי
+      
+      let receipts = JSON.parse(localStorage.getItem('mfix_receipts') || '[]');
+
+      const filtered = receipts.filter(r => {
+        const matchName = nameQuery ? r.customerName.toLowerCase().includes(nameQuery) : true;
+        const matchPhone = phoneQuery ? r.phone.includes(phoneQuery) : true; // ← r.phone כבר נקי!
+        return matchName && matchPhone;
+      });
+
+      renderReceiptList(filtered, 'searchResults');
+    }
+
+    // === ✅ תיקון שליחה – מהטופס הישיר ===
+    function sendToWhatsApp() {
+      const name = document.getElementById('customerName').value.trim();
+      const phoneInput = document.getElementById('phone').value.trim();
+      const model = document.getElementById('deviceModel').value.trim();
+      const totalStr = document.getElementById('totalAmount').value;
+      const issue = document.getElementById('issueDescription').value.trim();
+
+      if (!name || !phoneInput || !model || !totalStr || !issue) {
+        alert("נא מלא את כל השדות החובה לפני שליחה.");
+        return;
+      }
+
+      const phoneClean = formatIsraeliPhone(phoneInput);
+      if (!phoneClean || phoneClean.length < 10) {
+        alert("מספר טלפון לא תקין. נא הזן מספר עם 05X.");
+        return;
+      }
+
+      const total = parseFloat(totalStr);
+      const net = (total / 1.18).toFixed(2);
+      const vat = (total - net).toFixed(2);
+      const docNum = getNextDocNumber(); // ← מחשב מראש
+
+      const message = 
+        `שלום ${encodeURIComponent(name)}!%0A%0A` +
+        `טופס תיקון מספר: ${docNum}%0A` +
+        `דגם: ${encodeURIComponent(model)}%0A` +
+        `תיאור תקלה: ${encodeURIComponent(issue)}%0A%0A` +
+        `סכום ללא מע"מ: ${net} ₪%0A` +
+        `מע"מ (18%): ${vat} ₪%0A` +
+        `סה"כ לתשלום (כולל מע"מ): ${total.toFixed(2)} ₪%0A%0A` +
+        `תודה מצוות הטכנאים - Mfix`;
+
+      window.open(`https://wa.me/${phoneClean}?text=${message}`, '_blank');
+    }
+
+    function sendEmail() {
+      const name = document.getElementById('customerName').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const model = document.getElementById('deviceModel').value.trim();
+      const totalStr = document.getElementById('totalAmount').value;
+      const issue = document.getElementById('issueDescription').value.trim();
+
+      if (!name || !phone || !model || !totalStr || !issue) {
+        alert("נא מלא את כל השדות החובה לפני שליחה.");
+        return;
+      }
+
+      const total = parseFloat(totalStr);
+      const net = (total / 1.18).toFixed(2);
+      const vat = (total - net).toFixed(2);
+      const docNum = getNextDocNumber();
+
+      const subject = `טופס תיקון מספר ${docNum} - Mfix`;
+      const body = 
+        `שלום ${name}!\n\n` +
+        `טופס תיקון מספר: ${docNum}\n` +
+        `דגם: ${model}\n` +
+        `תיאור תקלה: ${issue}\n\n` +
+        `סכום ללא מע"מ: ${net} ₪\n` +
+        `מע"מ (18%): ${vat} ₪\n` +
+        `סה"כ לתשלום (כולל מע"מ): ${total.toFixed(2)} ₪\n\n` +
+        `תודה מצוות הטכנאים - Mfix`;
+
+      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    }
+
+    // === פונקציות תיקון הושלם ===
+    function getReceiptById(id) {
+      const receipts = JSON.parse(localStorage.getItem('mfix_receipts') || '[]');
+      return receipts.find(r => r.id == id);
+    }
+
+    function markAsCompletedSilent(id) {
+      let receipts = JSON.parse(localStorage.getItem('mfix_receipts') || '[]');
+      const index = receipts.findIndex(r => r.id == id);
+      if (index !== -1) {
+        receipts[index].completed = true;
+        localStorage.setItem('mfix_receipts', JSON.stringify(receipts));
+        loadCompletionDropdown();
+      }
+    }
+
+    function loadCompletionDropdown() {
+      const select = document.getElementById('completeDocId');
+      select.innerHTML = '<option value="">בחר מסמך...</option>';
+      const receipts = JSON.parse(localStorage.getItem('mfix_receipts') || '[]');
+      receipts.filter(r => !r.completed).forEach(r => {
+        const option = document.createElement('option');
+        option.value = r.id;
+        option.textContent = `#${r.docNumber} - ${r.customerName} (${r.deviceModel})`;
+        select.appendChild(option);
+      });
+    }
+
+    function sendCompletionWhatsApp() {
+      const id = document.getElementById('completeDocId').value;
+      if (!id) {
+        alert("אנא בחר מסמך.");
+        return;
+      }
+      const r = getReceiptById(id);
+      if (!r) {
+        alert("מסמך לא נמצא.");
+        return;
+      }
+
+      const phoneClean = formatIsraeliPhone(r.phone);
+      if (!phoneClean || phoneClean.length < 10) {
+        alert("מספר טלפון לא תקין במסמך זה.");
+        return;
+      }
+
+      const deviceModel = r.deviceModel || "לא צוין";
+
+      const message = 
+        `איזה כיף👐!%0A%0A` +
+        `המכשיר שמסרתם לתיקון, תוקן וממתין לאיסוף.%0A%0A` +
+        `${encodeURIComponent(deviceModel)}%0A%0A` +
+        `תודה מצוות הטכנאים - Mfix%0A` +
+        `קניון עזריאלי רמלה`;
+
+      markAsCompletedSilent(id);
+      window.open(`https://wa.me/${phoneClean}?text=${message}`, '_blank');
+    }
+
+    function sendCompletionEmail() {
+      const id = document.getElementById('completeDocId').value;
+      if (!id) {
+        alert("אנא בחר מסמך.");
+        return;
+      }
+      const r = getReceiptById(id);
+      if (!r) {
+        alert("מסמך לא נמצא.");
+        return;
+      }
+
+      const deviceModel = r.deviceModel || "לא צוין";
+
+      const subject = `המכשיר שלך מוכן לאיסוף - Mfix`;
+      const body = 
+        `איזה כיף! 👐\n\n` +
+        `המכשיר שמסרתם לתיקון, תוקן וממתין לאיסוף.\n\n` +
+        `${deviceModel}\n\n` +
+        `תודה מצוות הטכנאים - Mfix\n` +
+        `קניון עזריאלי רמלה`;
+
+      markAsCompletedSilent(id);
+      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    }
+
+    function sendCompletionSMS() {
+      const id = document.getElementById('completeDocId').value;
+      if (!id) {
+        alert("אנא בחר מסמך.");
+        return;
+      }
+      const r = getReceiptById(id);
+      if (!r) {
+        alert("מסמך לא נמצא.");
+        return;
+      }
+
+      const phoneClean = formatIsraeliPhone(r.phone);
+      if (!phoneClean || phoneClean.length < 10) {
+        alert("מספר טלפון לא תקין במסמך זה.");
+        return;
+      }
+
+      const deviceModel = r.deviceModel || "לא צוין";
+
+      const message = 
+        `איזה כיף! המכשיר שמסרתם לתיקון, תוקן וממתין לאיסוף.\n\n${deviceModel}\n\nתודה מצוות הטכנאים - Mfix, קניון עזריאלי רמלה.`;
+
+      markAsCompletedSilent(id);
+      window.location.href = `sms:${phoneClean}?body=${encodeURIComponent(message)}`;
+    }
+
+    // === הדפסה/ייצוא ===
+    function printReceipt(paperSize) {
+      if (document.getElementById('receipt').style.display !== 'block') {
+        alert("אין טופס להדפסה.");
+        return;
+      }
+      const receipt = document.getElementById('receipt');
+      receipt.style.maxWidth = paperSize === '58' ? '200px' : '280px';
+      receipt.style.fontSize = paperSize === '58' ? '10px' : '12px';
+      receipt.style.padding = paperSize === '58' ? '8px' : '10px';
+      window.print();
+      receipt.style.maxWidth = '280px';
+      receipt.style.fontSize = '14px';
+      receipt.style.padding = '20px';
+    }
+
+    function printLabel() {
+      const receipt = document.getElementById('receipt');
+      if (receipt.style.display !== 'block') {
+        alert("אין טופס כדי להדפיס תווית.");
+        return;
+      }
+      const label = document.getElementById('labelPreview');
+      label.style.display = 'block';
+      label.style.maxWidth = '200px';
+      label.style.fontSize = '11px';
+      label.style.padding = '8px';
+      window.print();
+      label.style.display = 'none';
+    }
+
+    async function exportToPDF() {
+      const receipt = document.getElementById('receipt');
+      if (receipt.style.display !== 'block') {
+        alert("אין טופס ליצוא.");
+        return;
+      }
+      try {
+        const canvas = await html2canvas(receipt, { scale: 2, backgroundColor: '#ffffff' });
+        const { jsPDF } = window.jspdf;
+        const imgWidth = 80;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        const pdf = new jsPDF({ unit: 'mm', format: [80, Math.min(imgHeight + 10, 300)] });
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 5, imgWidth, imgHeight);
+        pdf.save(`טופס_תיקון_${document.querySelector('.doc-number').innerText.split(': ')[1]}.pdf`);
+      } catch (e) {
+        alert("שגיאה ביצירת PDF: " + e.message);
+      }
+    }
+
+    async function downloadReceiptImage() {
+      const receipt = document.getElementById('receipt');
+      if (receipt.style.display !== 'block') {
+        alert("אין טופס להורדה.");
+        return;
+      }
+      try {
+        const canvas = await html2canvas(receipt, { scale: 2, backgroundColor: '#ffffff' });
+        const link = document.createElement('a');
+        link.download = `טופס_תיקון_${document.querySelector('.doc-number').innerText.split(': ')[1]}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (e) {
+        alert("שגיאה בהורדת תמונה: " + e.message);
+      }
+    }
+
+    // === ייצוא/ייבוא ===
+    function exportAllReceipts() {
+      const receipts = JSON.parse(localStorage.getItem('mfix_receipts') || '[]');
+      if (receipts.length === 0) {
+        alert("אין מסמכים לשמירה.");
+        return;
+      }
+
+      const jsonString = JSON.stringify(receipts, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'Mfix_כל_המסמכים.json');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    function importReceipts(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (!Array.isArray(imported)) throw new Error("פורמט לא תקין");
+
+          let receipts = JSON.parse(localStorage.getItem('mfix_receipts') || '[]');
+          const existingMax = receipts.length > 0 ? Math.max(...receipts.map(r => r.docNumber || 0)) : 1344;
+          let nextNum = existingMax + 1;
+
+          const validReceipts = imported.filter(r => 
+            r.customerName && r.phone && r.deviceModel && r.totalAmount !== undefined
+          ).map(r => {
+            if (!r.docNumber || receipts.some(ex => ex.docNumber === r.docNumber)) {
+              r.docNumber = nextNum++;
+            }
+            r.id = r.id || Date.now() + Math.random();
+            if (r.completed === undefined) r.completed = false;
+            // ודא שטלפון נקי
+            r.phone = cleanPhone(r.phone);
+            return r;
+          });
+
+          if (validReceipts.length === 0) {
+            alert("לא נמצאו מסמכים תקינים בקובץ.");
+            return;
+          }
+
+          receipts = [...receipts, ...validReceipts];
+          localStorage.setItem('mfix_receipts', JSON.stringify(receipts));
+          alert(`יובאו בהצלחה ${validReceipts.length} מסמכים.`);
+          loadAllReceipts();
+        } catch (err) {
+          console.error(err);
+          alert("שגיאה ביבוא הקובץ: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    // === פעולות על מסמך שמור ===
+    function viewSavedReceipt(id) {
+      const receipt = getReceiptById(id);
+      if (!receipt) return;
+      
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelector('.tab-btn[data-tab="form"]').classList.add('active');
+      document.getElementById('form-tab').classList.add('active');
+      
+      document.getElementById('receipt').innerHTML = generateReceiptHTML(receipt);
+      document.getElementById('receipt').style.display = 'block';
+      document.getElementById('labelPreview').innerHTML = generateLabelHTML(receipt);
+    }
+
+    function printSavedReceipt(id) {
+      viewSavedReceipt(id);
+      setTimeout(() => printReceipt('80'), 100);
+    }
+
+    function printLabelFromId(id) {
+      viewSavedReceipt(id);
+      setTimeout(() => printLabel(), 100);
+    }
+
+    function whatsappSavedReceipt(id) {
+      const r = getReceiptById(id);
+      if (!r) return;
+
+      const phoneClean = formatIsraeliPhone(r.phone);
+      if (!phoneClean || phoneClean.length < 10) {
+        alert("מספר טלפון לא תקין במסמך זה.");
+        return;
+      }
+
+      const net = r.netAmount.toFixed(2);
+      const vat = r.vatAmount.toFixed(2);
+      const message = 
+        `שלום ${encodeURIComponent(r.customerName)}!%0A%0A` +
+        `טופס תיקון מספר: ${r.docNumber}%0A` +
+        `דגם: ${encodeURIComponent(r.deviceModel)}%0A` +
+        `תיאור תקלה: ${encodeURIComponent(r.issueDescription)}%0A%0A` +
+        `סכום ללא מע"מ: ${net} ₪%0A` +
+        `מע"מ (18%): ${vat} ₪%0A` +
+        `סה"כ לתשלום (כולל מע"מ): ${r.totalAmount.toFixed(2)} ₪%0A%0A` +
+        `תודה מצוות הטכנאים - Mfix`;
+
+      window.open(`https://wa.me/${phoneClean}?text=${message}`, '_blank');
+    }
+
+    function emailSavedReceipt(id) {
+      const r = getReceiptById(id);
+      if (!r) return;
+
+      const net = r.netAmount.toFixed(2);
+      const vat = r.vatAmount.toFixed(2);
+      const subject = `טופס תיקון מספר ${r.docNumber} - Mfix`;
+      const body = 
+        `שלום ${r.customerName}!\n\n` +
+        `טופס תיקון מספר: ${r.docNumber}\n` +
+        `דגם: ${r.deviceModel}\n` +
+        `תיאור תקלה: ${r.issueDescription}\n\n` +
+        `סכום ללא מע"מ: ${net} ₪\n` +
+        `מע"מ (18%): ${vat} ₪\n` +
+        `סה"כ לתשלום (כולל מע"מ): ${r.totalAmount.toFixed(2)} ₪\n\n` +
+        `תודה מצוות הטכנאים - Mfix`;
+
+      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    }
+
+    function markAsCompleted(id) {
+      if (!confirm("לסמן את הטופס הזה כ'תיקון הושלם'?")) return;
+
+      let receipts = JSON.parse(localStorage.getItem('mfix_receipts') || '[]');
+      const index = receipts.findIndex(r => r.id == id);
+      if (index === -1) {
+        alert("מסמך לא נמצא.");
+        return;
+      }
+
+      receipts[index].completed = true;
+      localStorage.setItem('mfix_receipts', JSON.stringify(receipts));
+      alert("טופס סומן כהושלם!");
+      loadAllReceipts();
+    }
+
+    // === טעינה ראשונית ===
+    document.addEventListener('DOMContentLoaded', function() {
+      cleanExistingPhonesIfNeeded(); // ← ניקוי חד-פעמי בעת טעינה
+      document.querySelector('.tab-btn[data-tab="form"]').classList.add('active');
+      document.getElementById('form-tab').classList.add('active');
+      loadInventoryDropdown();
+    });
+  </script>
+</body>
+</html>

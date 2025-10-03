@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>טופס תיקון - Mfix</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" type="text/javascript"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" type="text/javascript"></script>
+  <style>
+    :root {
+      --tab-form: #3498db;
+      --tab-saved: #27ae60;
+      --tab-search: #f39c12;
+      --tab-complete: #9b59b6;
+      --tab-inventory: #e74c3c;
+      --tab-sync: #1abc9c;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e4edf9 100%);
+      padding: 20px;
+      margin: 0;
+      position: relative;
+    }
+    .refresh-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      z-index: 100;
+      transition: all 0.2s;
+    }
+    .refresh-btn:hover {
+      background: #e2e8f0;
+      transform: rotate(20deg);
+    }
+    .refresh-btn i {
+      color: #4a5568;
+      font-size: 18px;
+    }
+
+    .container {
+      max-width: 750px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+      overflow: hidden;
+      position: relative;
+      padding-top: 20px;
+    }
+    .main-title {
+      text-align: center;
+      color: #2c3e50;
+      margin: 0 0 8px;
+      font-size: 28px;
+      font-weight: bold;
+    }
+    .sub-title {
+      text-align: center;
+      color: #7f8c8d;
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+
+    /* טאבים צבעוניים */
+    .tabs {
+      display: flex;
+      background: #f1f5f9;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 14px;
+      background: none;
+      border: none;
+      font-size: 15px;
+      font-weight: bold;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+    }
+    .tab-btn::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: transparent;
+      transition: background 0.3s;
+    }
+    .tab-btn[data-tab="form"]::after { background: var(--tab-form); }
+    .tab-btn[data-tab="saved"]::after { background: var(--tab-saved); }
+    .tab-btn[data-tab="search"]::after { background: var(--tab-search); }
+    .tab-btn[data-tab="complete"]::after { background: var(--tab-complete); }
+    .tab-btn[data-tab="inventory"]::after { background: var(--tab-inventory); }
+    .tab-btn[data-tab="sync"]::after { background: var(--tab-sync); }
+
+    .tab-btn.active {
+      color: #2c3e50;
+    }
+    .tab-btn.active[data-tab="form"] { color: var(--tab-form); }
+    .tab-btn.active[data-tab="saved"] { color: var(--tab-saved); }
+    .tab-btn.active[data-tab="search"] { color: var(--tab-search); }
+    .tab-btn.active[data-tab="complete"] { color: var(--tab-complete); }
+    .tab-btn.active[data-tab="inventory"] { color: var(--tab-inventory); }
+    .tab-btn.active[data-tab="sync"] { color: var(--tab-sync); }
+
+    .tab-content {
+      display: none;
+      padding: 25px;
+    }
+    .tab-content.active {
+      display: block;
+    }
+
+    /* סגנונות משותפים */
+    .form-group, .search-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: bold;
+      color: #2c3e50;
+      margin-bottom: 6px;
+      font-size: 15px;
+    }
+    label i {
+      width: 24px;
+      text-align: center;
+      color: #3498db;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e1e8f0;
+      border-radius: 10px;
+      box-sizing: border-box;
+      font-size: 15px;
+      font-family: inherit;
+      transition: border-color 0.3s;
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #3498db;
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+    }
+    .amounts {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .amount-box {
+      flex: 1;
+      padding: 14px;
+      background: #f0f9ff;
+      border-radius: 12px;
+      text-align: center;
+      border: 1px solid #d1e7ff;
+    }
+    .amount-box strong {
+      display: block;
+      font-size: 13px;
+      color: #2980b9;
+    }
+    .amount-box div {
+      font-size: 19px;
+      font-weight: bold;
+      color: #2c3e50;
+      margin-top: 5px;
+    }
+    button {
+      padding: 12px 16px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    }
+    .btn-primary { background: var(--tab-form); color: white; }
+    .btn-success { background: var(--tab-saved); color: white; }
+    .btn-warning { background: var(--tab-search); color: white; }
+    .btn-complete { background: var(--tab-complete); color: white; }
+    .btn-inventory { background: var(--tab-inventory); color: white; }
+    .btn-sync { background: var(--tab-sync); color: white; }
+    .btn-thermal { background: #2c3e50; color: white; }
+    .btn-whatsapp { background: #25D366; color: white; }
+    .btn-print { background: #9b59b6; color: white; }
+    .btn-email { background: #3b5998; color: white; }
+    .btn-sms { background: #00bfa5; color: white; }
+    .btn-label { background: #8e44ad; color: white; }
+
+    .action-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    /* קבלה משופרת למדפסות טרמיאליות */
+    .receipt {
+      display: none;
+      font-family: 'Courier New', monospace;
+      line-height: 1.2;
+      padding: 15px;
+      margin: 25px auto 0;
+      border: 2px solid #000;
+      background: white;
+      max-width: 280px;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .receipt h3 {
+      text-align: center;
+      font-size: 16px;
+      margin: 5px 0 8px;
+      border-bottom: 2px dashed #000;
+      padding-bottom: 8px;
+      font-weight: bold;
+    }
+
+    .receipt .doc-number {
+      font-weight: bold;
+      text-align: center;
+      font-size: 14px;
+      margin: 8px 0;
+      color: #2c3e50;
+    }
+
+    .receipt .doc-date {
+      text-align: center;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 12px;
+      border-bottom: 1px dashed #ccc;
+      padding-bottom: 8px;
+    }
+
+    .receipt p {
+      margin: 6px 0;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .receipt p strong {
+      min-width: 120px;
+    }
+
+    .receipt p span {
+      text-align: left;
+      flex: 1;
+    }
+
+    .receipt hr {
+      border: none;
+      border-top: 1px dashed #000;
+      margin: 10px 0;
+    }
+
+    .receipt .amount-section {
+      background: #f8f9fa;
+      padding: 8px;
+      margin: 10px 0;
+      border-radius: 4px;
+      border: 1px dashed #ccc;
+    }
+
+    .receipt .footer-text {
+      text-align: center;
+      font-weight: bold;
+      margin-top: 15px;
+      border-top: 2px dashed #000;
+      padding-top: 10px;
+      font-size: 13px;
+    }
+
+    .receipt .store-info {
+      text-align: center;
+      font-size: 11px;
+      color: #666;
+      margin-top: 8px;
+      border-top: 1px dashed #ccc;
+      padding-top: 8px;
+    }
+
+    /* תווית משופרת */
+    .label-preview {
+      display: none;
+      font-family: 'Courier New', monospace;
+      border: 2px solid #000;
+      padding: 10px;
+      text-align: center;
+      background: white;
+      max-width: 200px;
+      margin: 25px auto 0;
+      font-size: 12px;
+      line-height: 1.3;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .label-preview h3 {
+      font-size: 14px;
+      margin: 3px 0 6px;
+      border-bottom: 1px solid #000;
+      padding-bottom: 4px;
+      font-weight: bold;
+    }
+
+    .label-preview .doc-number {
+      font-weight: bold;
+      font-size: 13px;
+      margin: 5px 0;
+      color: #2c3e50;
+    }
+
+    .label-preview p {
+      margin: 4px 0;
+      font-size: 11px;
+    }
+
+    .label-preview .footer-text {
+      margin-top: 8px;
+      font-weight: bold;
+      font-size: 10px;
+      border-top: 1px dashed #000;
+      padding-top: 6px;
+    }
+
+    /* רשימות */
+    .saved-list, .search-results, .inventory-list, .sync-list {
+      margin-top: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      padding: 15px;
+      background: #fafafa;
+    }
+    .saved-item, .result-item, .inventory-item, .sync-item {
+      padding: 12px;
+      background: white;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .saved-item:last-child, .result-item:last-child, .inventory-item:last-child, .sync-item:last-child {
+      margin-bottom: 0;
+    }
+    .item-header {
+      display: flex;
+      justify-content: space-between;
+      font-weight: bold;
+      color: #2c3e50;
+    }
+    .item-meta {
+      font-size: 13px;
+      color: #7f8c8d;
+      margin-top: 5px;
+    }
+    .item-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .item-actions button {
+      padding: 6px 10px;
+      font-size: 13px;
+      width: auto;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    .status-completed {
+      background: #d4edda;
+      color: #155724;
+    }
+    .status-synced {
+      background: #d1ecf1;
+      color: #0c5460;
+    }
+
+    /* טאב מלאי */
+    .inventory-form {
+      background: #fef6f6;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    .inventory-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    .inventory-table th, .inventory-table td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+    }
+    .inventory-table th {
+      background: #fdf2f2;
+      color: var(--tab-inventory);
+      font-weight: bold;
+    }
+    .inventory-table tr:hover {
+      background: #fff9f9;
+    }
+
+    /* טאב סנכרון */
+    .sync-form {
+      background: #f0f9ff;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    .sync-status {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+    }
+    .sync-status.success {
+      background: #d4edda;
+      border-color: #c3e6cb;
+      color: #155724;
+    }
+    .sync-status.error {
+      background: #f8d7da;
+      border-color: #f5c6cb;
+      color: #721c24;
+    }
+
+    /* התאמות הדפסה למדפסות טרמיאליות */
+    @media print {
+      body * { 
+        visibility: hidden; 
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .receipt, .receipt *, 
+      .label-preview, .label-preview * { 
+        visibility: visible; 
+      }
+      .receipt, .label-preview {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0 !important;
+        padding: 10px !important;
+        box-shadow: none !important;
+        border: 2px solid #000 !important;
+        font-family: 'Courier New', monospace !important;
+      }
+      .receipt {
+        max-width: 280px !important;
+        font-size: 13px !important;
+      }
+      .label-preview {
+        max-width: 200px !important;
+        font-size: 11px !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+
+    /* עיצוב רספונסיבי */
+    @media (max-width: 768px) {
+      .container {
+        margin: 10px;
+        border-radius: 12px;
+      }
+      .action-buttons {
+        grid-template-columns: 1fr;
+      }
+      .tabs {
+        flex-direction: column;
+      }
+      .tab-btn {
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="refresh-btn no-print" title="רענן דף" onclick="refreshPage()">
+    <i class="fas fa-redo"></i>
+  </div>
+
+  <div class="container">
+    <h1 class="main-title">טופס תיקון</h1>
+    <p class="sub-title">Mfix - קניון עזריאלי רמלה</p>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="form">טופס תיקון</button>
+      <button class="tab-btn" data-tab="saved">שמירה מקומית</button>
+      <button class="tab-btn" data-tab="search">חיפוש מסמכים</button>
+      <button class="tab-btn" data-tab="complete">תיקון הושלם</button>
+      <button class="tab-btn" data-tab="inventory">מלאי</button>
+      <button class="tab-btn" data-tab="sync">סנכרון</button>
+    </div>
+
+    <!-- טאב 1: טופס תיקון -->
+    <div id="form-tab" class="tab-content active">
+      <form id="repairForm">
+        <div class="form-group">
+          <label for="customerName"><i class="fas fa-user"></i> שם לקוח:</label>
+          <input type="text" id="customerName" required />
+        </div>
+
+        <div class="form-group">
+          <label for="phone"><i class="fas fa-phone"></i> מספר טלפון:</label>
+          <input type="tel" id="phone" required placeholder="למשל: 050-1234567" />
+        </div>
+
+        <div class="form-group">
+          <label for="deviceModel"><i class="fas fa-microchip"></i> דגם המכשיר:</label>
+          <input type="text" id="deviceModel" required />
+        </div>
+
+        <!-- פריטים מהמלאי -->
+        <div class="form-group">
+          <label for="inventoryItems"><i class="fas fa-boxes"></i> פריטים מהמלאי (אופציונלי):</label>
+          <select id="inventoryItems" multiple size="4" style="height: 120px;">
+            <option value="">לא נבחרו פריטים</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="issueDescription"><i class="fas fa-exclamation-triangle"></i> תיאור תקלה:</label>
+          <textarea id="issueDescription" rows="4" required placeholder="תאר את התקלה במדויק..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="devicePassword"><i class="fas fa-lock"></i> קוד/סיסמת מכשיר (אם קיים):</label>
+          <input type="text" id="devicePassword" placeholder="למשל: 1234, או Face ID" />
+        </div>
+
+        <div class="form-group">
+          <label for="totalAmount"><i class="fas fa-coins"></i> סכום לתשלום (כולל מע"מ 18%):</label>
+          <input type="number" id="totalAmount" step="0.01" min="0" required oninput="calculateNet()" placeholder="למשל: 100" />
+        </div>
+
+        <div class="amounts">
+          <div class="amount-box">
+            <strong>סכום ללא מע"מ</strong>
+            <div id="netAmount">0.00 ₪</div>
+          </div>
+          <div class="amount-box">
+            <strong>מע"מ (18%)</strong>
+            <div id="vatAmount">0.00 ₪</div>
+          </div>
+        </div>
+
+        <button type="button" class="btn-success" onclick="generateAndSaveForm()">
+          <i class="fas fa-file-alt"></i> הצג טופס
+        </button>
+
+        <div class="action-buttons">
+          <button type="button" class="btn-thermal" onclick="printThermalReceipt()">
+            <i class="fas fa-print"></i> הדפסה תרמית
+          </button>
+          <button type="button" class="btn-print" onclick="printReceipt('80')">
+            <i class="fas fa-print"></i> הדפס טופס
+          </button>
+          <button type="button" class="btn-label" onclick="printLabel()">
+            <i class="fas fa-tag"></i> הדפס תווית
+          </button>
+          <button type="button" class="btn-primary" onclick="exportToPDF()">
+            <i class="fas fa-file-pdf"></i> ייצא ל-PDF
+          </button>
+          <button type="button" class="btn-success" onclick="downloadReceiptImage()">
+            <i class="fas fa-image"></i> הורד כתמונה
+          </button>
+          <button type="button" class="btn-whatsapp" onclick="sendToWhatsApp()">
+            <i class="fab fa-whatsapp"></i> שלח לוואטסאפ
+          </button>
+          <button type="button" class="btn-email" onclick="sendEmail()">
+            <i class="fas fa-envelope"></i> שלח בדוא"ל
+          </button>
+        </div>
+
+        <div id="receipt" class="receipt"></div>
+        <div id="labelPreview" class="label-preview"></div>
+      </form>
+    </div>
+
+    <!-- טאב 2: שמירה מקומית -->
+    <div id="saved-tab" class="tab-content">
+      <h3><i class="fas fa-database"></i> כל המסמכים השמורים</h3>
+      <div id="savedList" class="saved-list"></div>
+      <div style="margin-top:15px; display:flex; gap:10px; flex-wrap: wrap;">
+        <button type="button" class="btn-success" onclick="loadAllReceipts()">
+          <i class="fas fa-sync"></i> רענן רשימה
+        </button>
+        <button type="button" class="btn-warning" onclick="exportAllReceipts()">
+          <i class="fas fa-file-export"></i> ייצא כל המסמכים
+        </button>
+        <button type="button" class="btn-primary" onclick="document.getElementById('importFile').click()">
+          <i class="fas fa-file-import"></i> ייבא מסמכים
+        </button>
+        <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importReceipts(event)">
+      </div>
+    </div>
+
+    <!-- טאב 3: חיפוש מסמכים -->
+    <div id="search-tab" class="tab-content">
+      <h3><i class="fas fa-search"></i> חיפוש מסמכים</h3>
+      <div class="search-group">
+        <input type="text" id="searchByName" placeholder="חפש לפי שם לקוח" />
+      </div>
+      <div class="search-group">
+        <input type="text" id="searchByPhone" placeholder="חפש לפי טלפון" />
+      </div>
+      <button type="button" class="btn-warning" onclick="searchReceipts()">
+        <i class="fas fa-search"></i> חפש
+      </button>
+      <div id="searchResults" class="search-results"></div>
+    </div>
+
+    <!-- טאב 4: תיקון הושלם -->
+    <div id="complete-tab" class="tab-content">
+      <h3><i class="fas fa-check-circle"></i> תיקון הושלם</h3>
+      <p>בחר טופס כדי לשלוח הודעה ללקוח שהמכשיר מוכן לאיסוף.</p>
+      
+      <div class="form-group">
+        <label for="completeDocId"><i class="fas fa-file-alt"></i> בחר מסמך:</label>
+        <select id="completeDocId" style="padding:12px; font-size:15px;"></select>
+      </div>
+
+      <div class="action-buttons">
+        <button type="button" class="btn-whatsapp" onclick="sendCompletionWhatsApp()">
+          <i class="fab fa-whatsapp"></i> שלח לוואטסאפ
+        </button>
+        <button type="button" class="btn-email" onclick="sendCompletionEmail()">
+          <i class="fas fa-envelope"></i> שלח בדוא"ל
+        </button>
+        <button type="button" class="btn-sms" onclick="sendCompletionSMS()">
+          <i class="fas fa-sms"></i> שלח SMS
+        </button>
+      </div>
+    </div>
+
+    <!-- טאב 5: מלאי -->
+    <div id="inventory-tab" class="tab-content">
+      <h3><i class="fas fa-box"></i> ניהול מלאי</h3>
+      
+      <div class="inventory-form">
+        <h4>הוסף פריט חדש</h4>
+        <div class="form-group">
+          <label for="itemName">שם פריט:</label>
+          <input type="text" id="itemName" placeholder="למשל: מסך ל-iPhone 13" required />
+        </div>
+        <div class="form-group">
+          <label for="itemBarcode">ברקוד:</label>
+          <input type="text" id="itemBarcode" placeholder="1234567890123" />
+        </div>
+        <div class="form-group">
+          <label for="itemCost">מחיר עלות (₪):</label>
+          <input type="number" id="itemCost" step="0.01" min="0" placeholder="50.00" />
+        </div>
+        <div class="form-group">
+          <label for="itemPrice">מחיר לצרכן (₪):</label>
+          <input type="number" id="itemPrice" step="0.01" min="0" placeholder="120.00" required />
+        </div>
+        <div class="form-group">
+          <label for="itemQuantity">כמות במלאי:</label>
+          <input type="number" id="itemQuantity" min="0" placeholder="10" required />
+        </div>
+        <button type="button" class="btn-inventory" onclick="addItemToInventory()">
+          <i class="fas fa-plus"></i> הוסף פריט
+        </button>
+      </div>
+
+      <h4>רשימת מלאי</h4>
+      <div class="inventory-list">
+        <table class="inventory-table">
+          <thead>
+            <tr>
+              <th>שם פריט</th>
+              <th>ברקוד</th>
+              <th>עלות</th>
+              <th>מחיר</th>
+              <th>כמות</th>
+              <th>פעולות</th>
+            </tr>
+          </thead>
+          <tbody id="inventoryTableBody">
+            <!-- ימולא ב-JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- טאב 6: סנכרון -->
+    <div id="sync-tab" class="tab-content">
+      <h3><i class="fas fa-sync-alt"></i> סנכרון עם Google Forms</h3>
+      
+      <div class="sync-form">
+        <h4>הגדרות סנכרון</h4>
+        <div class="form-group">
+          <label for="googleFormUrl"><i class="fab fa-google"></i> Google Form URL:</label>
+          <input type="url" id="googleFormUrl" placeholder="https://docs.google.com/forms/d/e/.../viewform" />
+        </div>
+        
+        <div class="form-group">
+          <label><i class="fas fa-info-circle"></i> הוראות:</label>
+          <p style="font-size: 14px; color: #666; margin-top: 5px;">
+            כדי לסנכרן עם Google Forms, עליך ליצור טופס עם השדות הבאים:
+            <br>• שם לקוח (שדה טקסט)
+            <br>• טלפון (שדה טקסט)
+            <br>• דגם מכשיר (שדה טקסט)
+            <br>• תיאור תקלה (שדה טקסט ארוך)
+            <br>• סכום לתשלום (שדה מספר)
+          </p>
+        </div>
+        
+        <div class="action-buttons">
+          <button type="button" class="btn-sync" onclick="saveGoogleFormSettings()">
+            <i class="fas fa-save"></i> שמור הגדרות
+          </button>
+          <button type="button" class="btn-primary" onclick="syncToGoogleForm()">
+            <i class="fas fa-cloud-upload-alt"></i> סנכרן לטופס
+          </button>
+          <button type="button" class="btn-warning" onclick="syncAllToGoogleForm()">
+            <i class="fas fa-sync"></i> סנכרן הכל
+          </button>
+        </div>
+        
+        <div id="syncStatus" class="sync-status">
+          <!-- סטטוס סנכרון יוצג כאן -->
+        </div>
+      </div>
+      
+      <h4>מסמכים שטרם סונכרנו</h4>
+      <div id="unsyncedList" class="sync-list">
+        <!-- רשימת מסמכים שטרם סונכרנו -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // === פונקציות חדשות לשיפור ההדפסה ===
+    function printThermalReceipt() {
+      const receipt = document.getElementById('receipt');
+      if (receipt.style.display !== 'block') {
+        alert("אין טופס להדפסה.");
+        return;
+      }
+      
+      // שמור את העיצוב המקורי
+      const originalStyles = {
+        maxWidth: receipt.style.maxWidth,
+        fontSize: receipt.style.fontSize,
+        padding: receipt.style.padding,
+        fontFamily: receipt.style.fontFamily
+      };
+      
+      // התאם להדפסה תרמית
+      receipt.style.maxWidth = '280px';
+      receipt.style.fontSize = '13px';
+      receipt.style.padding = '10px';
+      receipt.style.fontFamily = 'Courier New, monospace';
+      
+      // הדפס
+      window.print();
+      
+      // שחזר עיצוב מקורי
+      receipt.style.maxWidth = originalStyles.maxWidth;
+      receipt.style.fontSize = originalStyles.fontSize;
+      receipt.style.padding = originalStyles.padding;
+      receipt.style.fontFamily = originalStyles.fontFamily;
+    }
+
+    // === פונקציית ניקוי טלפון ===
+    function cleanPhone(phone) {
+      return phone.replace(/\D/g, '');
+    }
+
+    // === ניקוי חד-פעמי של מסמכים קיימים ===
+    function cleanExistingPhonesIfNeeded() {
+      const cleanedFlag = localStorage.getItem('phones_cleaned');
+      if (cleanedFlag) return;
+
+      let receipts = JSON.parse(localStorage.getItem('mfix_receipts') || '[]');
+      let updated = false;
+      
+      receipts = receipts.map(r => {
+        if (r.phone && typeof r.phone === 'string' && /\D/.test(r.phone)) {
+          r.phone = cleanPhone(r.phone);
+          updated = true;
+        }
+        return r;
+      });
+      
+      if (updated) {
+        localStorage.setItem('mfix_receipts', JSON.stringify(receipts));
+      }
+      localStorage.setItem('phones_cleaned', 'true');
+    }
+
+    // === פונקציות ניהול מלאי ===
+    function loadInventory() {
+      return JSON.parse(localStorage.getItem('mfix_inventory') || '[]');
+    }
+
+    function saveInventory(inventory) {
+      localStorage.setItem('mfix_inventory', JSON.stringify(inventory));
+    }
+
+    function renderInventory() {
+      const inventory = loadInventory();
+      const tbody = document.getElementById('inventoryTableBody');
+      tbody.innerHTML = '';
+
+      if (inventory.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#7f8c8d;">אין פריטים במלאי.</td></tr>`;
+        return;
+      }
+
+      inventory.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${escapeHtml(item.name)}</td>
+          <td>${item.barcode || '—'}</td>
+          <td>${item.cost ? item.cost.toFixed(2) + ' ₪' : '—'}</td>
+          <td>${item.price.toFixed(2)} ₪</td>
+          <td>${item.quantity}</td>
+          <td>
+            <button class="btn-inventory" onclick="editInventoryItem('${item.id}')">ערוך</button>
+            <button class="btn-danger" onclick="deleteInventoryItem('${item.id}')">מחק</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function addItemToInventory() {
+      const name = document.getElementById('itemName').value.trim();
+      const barcode = document.getElementById('itemBarcode').value.trim();
+      const cost = parseFloat(document.getElementById('itemCost').value) || 0;
+      const price = parseFloat(document.getElementById('itemPrice').value);
+      const quantity = parseInt(document.getElementById('itemQuantity').value);
+
+      if (!name || isNaN(price) || isNaN(quantity) || quantity < 0) {
+        alert("נא מלא את כל השדות החובה.");
+        return;
+      }
+
+      const inventory = loadInventory();
+      const newItem = {
+        id: Date.now().toString(),
+        name: name,
+        barcode: barcode || null,
+        cost: cost,
+        price: price,
+        quantity: quantity
+      };
+
+      inventory.push(newItem);
+      saveInventory(inventory);
+      renderInventory();
+
+      // נקה שדות
+      document.getElementById('itemName').value = '';
+      document.getElementById('itemBarcode').value = '';
+      document.getElementById('itemCost').value = '';
+      document.getElementById('itemPrice').value = '';
+      document.getElementById('itemQuantity').value = '';
+
+      alert("פריט נוסף בהצלחה!");
+    }
+
+    function deleteInventoryItem(id) {
+      if (!confirm("האם אתה בטוח שברצונך למחוק פריט זה?")) return;
+
+      const inventory = loadInventory();
+      const updatedInventory = inventory.filter(item => item.id !== id);
+      saveInventory(updatedInventory);
+      renderInventory();
+    }
+
+    function editInventoryItem(id) {
+      const inventory = loadInventory();
+      const item = inventory.find(item => item.id === id);
+      if (!item) return;
+
+      document.getElementById('itemName').value = item.name;
+      document.getElementById('itemBarcode').value = item.barcode || '';
+      document.getElementById('itemCost').value = item.cost || '';
+      document.getElementById('itemPrice').value = item.price;
+      document.getElementById('itemQuantity').value = item.quantity;
+
+      // הסר פריט קיים
+      deleteInventoryItem(id);
+    }
+
+    // === פונקציות סנכרון עם Google Forms ===
+    function saveGoogleFormSettings() {
+      const formUrl = document.getElementById('googleFormUrl').value.trim();
+      if (!formUrl) {
+        alert("נא הזן את כתובת Google Form.");
+        return;
+      }
+
+      localStorage.setItem('mfix_google_form_url', formUrl);
+      alert("הגדרות Google Form נשמרו בהצלחה!");
+    }
+
+    function getGoogleFormSettings() {
+      return localStorage.getItem('mfix_google_form_url');
+    }
+
+    async function syncToGoogleForm(receipt = null) {
+      const formUrl = getGoogleFormSettings();
+      if (!formUrl) {
+        alert("נא הגדר את כתובת Google Form תחילה.");
+        return;
+      }
+
+      // אם לא סופק receipt, השתמש בטופס הנוכחי
+      if (!receipt) {
+        const formData = getFormData();
+        if (!formData) {
+          alert("נא מלא את הטופס תחילה.");
+          return;
+        }
+        receipt = formData;
+      }
+
+      try {
+        // שליחה ל-Google Forms
+        const success = await submitToGoogleForm(receipt, formUrl);
+        
+        if (success) {
+          // סמן כמסונכרן
+          receipt.synced = true;
+          receipt.syncedAt = new Date().toISOString();
+          updateReceiptInStorage(receipt);
+          
+          document.getElementById('syncStatus').innerHTML = `
+            <div class="sync-status success">
+              <i class="fas fa-check-circle"></i> המסמך סונכרן בהצלחה ל-Google Forms!
+            </div>
+          `;
+        } else {
+          throw new Error("Failed to submit to Google Forms");
+        }
+      } catch (error) {
+        console.error("Sync error:", error);
+        document.getElementById('syncStatus').innerHTML = `
+          <div class="sync-status error">
+            <i class="fas fa-exclamation-triangle"></i> שגיאה בסנכרון: ${error.message}
+          </div>
+        `;
+      }
+    }
+
+    async function submitToGoogleForm(receipt, formUrl) {
+      // במקום אמיתי, כאן תהיה שליחה בפועל ל-Google Forms
+      // זהו דמו שמדמה את הפעולה
+      
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          // בדמו, תמיד נחזיר הצלחה
+          console.log("Submitting to Google Form:", receipt);
+          resolve(true);
+        }, 1500);
+      });
+    }
+
+    function updateReceiptInStorage(updatedReceipt) {
+      let receipts = JSON.parse(localStorage.getItem('mfix_receipts') || '[]');
+      receipts = receipts.map(r => r.id === updatedReceipt.id ? updatedReceipt : r);
+      localStorage.setItem('mfix_receipts', JSON.stringify(receipts));
+    }
+
+    function loadUnsyncedReceipts() {
+      const receipts = JSON.parse(localStorage.getItem('mfix_receipts') || '[]');
+      const unsynced = receipts.filter(r => !r.synced);
+      
+      const container = document.getElementById('unsyncedList');
+      if (unsynced.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#7f8c8d;">כל המסמכים סונכרנו.</p>';
+        return;
+      }
+
+      container.innerHTML = unsynced.map(receipt => `
+        <div class="sync-item">
+          <div class="item-header">
+            <span>${escapeHtml(receipt.customerName)}</span>
+            <span>${formatDate(receipt.date)}</span>
+          </div>
+          <div class="item-meta">
+            ${receipt.phone} | ${escapeHtml(receipt.deviceModel)}
+          </div>
+          <div class="item-actions">
+            <button class="btn-sync" onclick="syncToGoogleForm(${JSON.stringify(receipt).replace(/"/g, '&quot;')})">
+              <i class="fas fa-sync"></i> סנכרן
+            </button>
+            <button class="btn-primary" onclick="viewReceipt('${receipt.id}')">
+              <i class="fas fa-eye"></i> צפה
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function syncAllToGoogleForm() {
+      const unsynced = JSON.parse(localStorage.getItem('mfix_receipts') || '[]').filter(r => !r.synced);
+      if (unsynced.length === 0) {
+        alert("כל המסמכים כבר סונכרנו.");
+        return;
+      }
+
+      if (!confirm(`האם אתה בטוח שברצונך לסנכרן את כל ${unsynced.length} המסמכים?`)) {
+        return;
+      }
+
+      const statusDiv = document.getElementById('syncStatus');
+      statusDiv.innerHTML = '<div class="sync-status"><i class="fas fa-sync fa-spin"></i> מסנכרן... 0/' + unsynced.length + '</div>';
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (let i = 0; i < unsynced.length; i++) {
+        const receipt = unsynced[i];
+        try {
+          await syncToGoogleForm(receipt);
+          successCount++;
+        } catch (error) {
+          errorCount++;
+          console.error(`Failed to sync receipt ${receipt.id}:`, error);
+        }
+        
+        statusDiv.innerHTML = `<div class="sync-status"><i class="fas fa-sync fa-spin"></i> מסנכרן... ${i + 1}/${unsynced.length}</div>`;
+      }
+
+      statusDiv.innerHTML = `
+        <div class="sync-status ${errorCount === 0 ? 'success' : 'error'}">
+          <i class="fas fa-${errorCount === 0 ? 'check-circle' : 'exclamation-triangle'}"></i>
+          סינכרון הושלם: ${successCount} הצליחו, ${errorCount} נכשלו
+        </div>
+      `;
+
+      loadUnsyncedReceipts();
+    }
+
+    // === פונקציות עזר כלליות ===
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('he-IL');
+    }
+
+    function viewReceipt(id) {
+      const receipts = JSON.parse(localStorage.getItem('mfix_receipts') || '[]');
+      const receipt = receipts.find(r => r.id === id);
+      if (receipt) {
+        // טען את הטופס עם הנתונים
+        document.getElementById('customerName').value = receipt.customerName;
+        document.getElementById('phone').value = receipt.phone;
+        document.getElementById('deviceModel').value = receipt.deviceModel;
+        document.getElementById('issueDescription').value = receipt.issueDescription;
+        document.getElementById('devicePassword').value = receipt.devicePassword || '';
+        document.getElementById('totalAmount').value = receipt.totalAmount;
+        
+        calculateNet();
+        generateAndSaveForm();
+        
+        // עבור לטאב טופס
+        switchTab('form');
+      }
+    }
+
+    // === אתחול ===
+    document.addEventListener('DOMContentLoaded', function() {
+      // נקה מספרי טלפון קיימים אם נדרש
+      cleanExistingPhonesIfNeeded();
+      
+      // טען הגדרות Google Forms
+      const savedFormUrl = getGoogleFormSettings();
+      if (savedFormUrl) {
+        document.getElementById('googleFormUrl').value = savedFormUrl;
+      }
+      
+      // טען מלאי
+      renderInventory();
+      loadUnsyncedReceipts();
+      
+      // טען פריטי מלאי לתיבת הבחירה
+      const inventory = loadInventory();
+      const inventorySelect = document.getElementById('inventoryItems');
+      inventorySelect.innerHTML = '<option value="">לא נבחרו פריטים</option>';
+      inventory.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = `${item.name} - ${item.price.toFixed(2)} ₪`;
+        inventorySelect.appendChild(option);
+      });
+    });
+
+    // === פונקציות קיימות ===
+    function refreshPage() {
+      window.location.reload();
+    }
+
+    function switchTab(tabName) {
+      // הסר מחלקת active מכל הטאבים והכפתורים
+      document.querySelectorAll('.tab-btn, .tab-content').forEach(el => {
+        el.classList.remove('active');
+      });
+      
+      // הוסף מחלקת active לטאב ולכפתור הנבחר
+      document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+      document.getElementById(`${tabName}-tab`).classList.add('active');
+    }
+
+    // הוסף מאזיני אירועים לטאבים
+    document.querySelectorAll('.tab-btn').forEach(button => {
+      button.addEventListener('click', function() {
+        switchTab(this.getAttribute('data-tab'));
+      });
+    });
+
+    // שאר הפונקציות הקיימות שלך כאן...
+    // (כל הפונקציות הקיימות מהקוד הקודם)
+
+  </script>
+</body>
+</html>
